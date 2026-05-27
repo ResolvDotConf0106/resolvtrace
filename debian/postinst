@@ -1,0 +1,8 @@
+#!/bin/bash
+set -e
+mkdir -p /var/log/resolvtrace
+chmod 755 /var/log/resolvtrace
+systemctl daemon-reload
+systemctl enable resolvtrace
+systemctl start resolvtrace
+echo "resolvtrace started. Logs: journalctl -u resolvtrace -f"

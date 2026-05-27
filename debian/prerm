@@ -1,0 +1,4 @@
+#!/bin/bash
+set -e
+systemctl stop resolvtrace    2>/dev/null || true
+systemctl disable resolvtrace 2>/dev/null || true

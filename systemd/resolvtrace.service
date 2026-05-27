@@ -1,0 +1,23 @@
+[Unit]
+Description=Resolvtrace DNS Observability Service
+Documentation=man:dns_sniffer(8) https://github.com/yourusername/resolvtrace
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/dns_sniffer
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=resolvtrace
+AmbientCapabilities=CAP_NET_RAW CAP_NET_ADMIN
+CapabilityBoundingSet=CAP_NET_RAW CAP_NET_ADMIN
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/log/resolvtrace
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

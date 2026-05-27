@@ -1,0 +1,10 @@
+Package: resolvtrace
+Version: 1.0.0
+Section: net
+Priority: optional
+Architecture: amd64
+Depends: libpcap0.8
+Maintainer: Your Name <your@email.com>
+Description: Linux DNS observability tool
+ Captures DNS traffic and logs to journald and /var/log/resolvtrace/.
+Homepage: https://github.com/yourusername/resolvtrace
