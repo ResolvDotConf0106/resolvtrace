@@ -1,0 +1,16 @@
+[Unit]
+Description=Resolvtrace DNS Failure Monitor
+After=systemd-resolved.service resolvtrace.service
+Wants=systemd-resolved.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/resolvtrace-monitor
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=resolvtrace-monitor
+
+[Install]
+WantedBy=multi-user.target
