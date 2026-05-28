@@ -13,40 +13,37 @@ log_event() {
     local reason="$2"
     local TS
     TS=$(date '+%Y-%m-%dT%H:%M:%S')
-    echo "[RESOLVTRACE] $TS | $level | $reason" | tee -a "$LOG_FILE"
+    local MSG="[RESOLVTRACE] $TS | $level | $reason"
+    echo "$MSG"                  # stdout → journald
+    echo "$MSG" >> "$LOG_FILE"   # file
 }
 
-# Get all nameservers from resolv.conf dynamically
 get_nameservers() {
     grep "^nameserver" "$RESOLV_CONF" 2>/dev/null | awk '{print $2}'
 }
 
-# Get system hostname as probe target — no hardcoded domain needed
 get_probe_target() {
     hostname -f 2>/dev/null || hostname 2>/dev/null || echo "localhost"
 }
 
-# Probe a single nameserver using its own search domains
 probe_nameserver() {
     local ns="$1"
     local target
     target=$(get_probe_target)
-    # Use dig with a short timeout — direct query to the nameserver
     dig +short +tries=1 +timeout=3 "@${ns}" "$target" A > /dev/null 2>&1 || \
     dig +short +tries=1 +timeout=3 "@${ns}" . NS > /dev/null 2>&1
 }
 
 log_event "INFO    " "resolvtrace-monitor started | pid=$$ | config=$RESOLV_CONF | interval=${PROBE_INTERVAL}s"
 
-# ── Background: inotify watches resolv.conf for changes ───────────────────
+# ── Background: inotify watches resolv.conf ────────────────────────────────
 (
 inotifywait -m -e modify,move,create,delete,attrib "$RESOLV_CONF" 2>/dev/null | \
 while read -r dir event file; do
     NS_LIST=$(get_nameservers | tr '\n' ',' | sed 's/,$//')
     SEARCH=$(grep "^search\|^domain" "$RESOLV_CONF" 2>/dev/null | awk '{print $2}' | tr '\n' ',' | sed 's/,$//')
-
     if [ -z "$NS_LIST" ]; then
-        log_event "FAILED  " "resolv.conf changed | event=$event | NO nameservers configured | DNS will fail"
+        log_event "FAILED  " "resolv.conf changed | event=$event | NO nameservers | DNS will fail"
     else
         log_event "CONFIG  " "resolv.conf changed | event=$event | nameservers=$NS_LIST | search=${SEARCH:-none}"
     fi
@@ -54,7 +51,7 @@ done
 ) &
 
 # ── Foreground: active health probe loop ──────────────────────────────────
-declare -A NS_STATES   # track per-nameserver state
+declare -A NS_STATES
 
 while true; do
     mapfile -t NS_LIST < <(get_nameservers)
@@ -68,7 +65,6 @@ while true; do
         LAST_STATE="checking"
         for NS in "${NS_LIST[@]}"; do
             PREV="${NS_STATES[$NS]:-unknown}"
-
             if probe_nameserver "$NS"; then
                 if [ "$PREV" != "up" ]; then
                     if [ "$PREV" = "down" ]; then
